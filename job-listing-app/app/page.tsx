@@ -1,17 +1,19 @@
 import JobCard from "./components/JobCard";
 import Header from "./components/Header";
+import { fetchJobs } from './services/jobs';
 
-import type JobInterface from "./Job";
-import jobsData from "./data/jobs.json";
+export default async function Home() {
+  const jobs = await fetchJobs();
 
-const data = jobsData.job_postings as JobInterface[];
-const len = data.length;
+  // Show ONLY jobs with a valid logo
+  const validJobs = jobs.filter((job) =>
+    job.logoUrl && job.logoUrl.trim() !== ""
+  );
 
-export default function Home() {
   return (
     <>
-      {Header(len)}
-      {data.map((job) => (
+      {Header(validJobs.length)}
+      {validJobs.map((job) => (
         <JobCard key={job.id} {...job} />
       ))}
     </>

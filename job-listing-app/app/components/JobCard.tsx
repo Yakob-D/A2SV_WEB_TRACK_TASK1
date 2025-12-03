@@ -7,13 +7,19 @@ const JobCard = (job: JobInterface) => {
     <div className="border-gray-300 border rounded-4xl mr-100 ml-30 mt-5 mb-5 p-5 hover:bg-gray-300">
       <div className="p-2 flex gap-6">
         <div className="w-20 h-20 rounded-full overflow-hidden shrink-0">
-          <Image
-            src={job.image}
-            alt={`${job.title} logo`}
-            width={80}
-            height={80}
-            className="w-full h-full object-cover"
-          />
+          {job.logoUrl ? (
+            <Image
+              src={job.logoUrl}
+              alt={`${job.orgName} logo`}
+              width={80}
+              height={80}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 text-sm">
+              No Logo
+            </div>
+          )}
         </div>
 
         <div className="">
@@ -21,14 +27,18 @@ const JobCard = (job: JobInterface) => {
             {job.title}
           </Link>
           <p className="text-gray-500 mb-2">
-            {job.company} • {" "}
-            {job.about.location}
+            {job.orgName} • {" "}
+            {job.location.join(', ')}
           </p>
           <p>{job.description}</p>
           <div className="flex align-center mt-2">
+            <div className="text-[#56CDAD] bg-green-100 p-2 rounded-3xl text-center text-sm font-semibold">
+              {job.opType}
+            </div>
+            <div className="h-9 w-0.5 bg-gray-300 mx-3"></div>
             <hr className="text-black" />
             <div className="flex gap-2 align-center justify-center  text-sm">
-              {job.about.categories.map((category, index) => {
+              {job.categories.map((category, index) => {
                 const isEven = index % 2 === 0;
                 const colorClasses = isEven
                   ? "text-amber-400"

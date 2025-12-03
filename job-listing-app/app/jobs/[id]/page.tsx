@@ -1,14 +1,12 @@
 "use client";
-import React from "react";
 import JobInterface from "../../Job";
 import { LuCirclePlus, LuCalendarCheck, LuCalendar1 } from "react-icons/lu";
 import { GoDotFill } from "react-icons/go";
 import { MdOutlineLocalFireDepartment } from "react-icons/md";
 import { GrLocation } from "react-icons/gr";
-import { FaRegCircleCheck } from "react-icons/fa6";
+import { fetchJobById } from "@/app/services/jobs";
 import { useParams } from "next/navigation";
-import jobsData from "@/app/data/jobs.json";
-
+import { useEffect, useState } from "react";
 
 type IconBoxProps = {
   children: React.ReactNode;
@@ -23,16 +21,47 @@ const IconBox = ({ children, size = "md", className = "" }: IconBoxProps) => {
   return <div className={`${base} ${sizing} ${className}`}>{children}</div>;
 };
 
-const Job = () => {
+export default function JobPage() {
   const params = useParams();
-  const rawId = params.id;
-  const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const raw_id = params.id;
+  const id = Array.isArray(raw_id) ? raw_id[0] : raw_id;
+  const [job, setJob] = useState<JobInterface | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    const loadJob = async () => {
+      try {
+        const fetchedJob = await fetchJobById(id);
+        setJob(fetchedJob);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to load job details";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJob();
+  }, [id]);
+
   if (!id) {
-    return <div className="p-10">Job not found.</div>;
+    return <div className="p-10">Job ID is missing.</div>;
   }
-  const job = jobsData.job_postings.find(
-    (j: JobInterface) => String(j.id) === String(id)
-  ) as JobInterface;
+
+  if (loading) return <div className="p-10">Loading job...</div>;
+  if (error || !job) return <div className="p-10">Job not found.</div>;
+
+  const responsibilities = job.responsibilities
+    ? job.responsibilities.split("\n")
+    : [];
+
   return (
     <div className="flex flex-row flex-1 p-10 gap-10">
       <div>
@@ -42,45 +71,30 @@ const Job = () => {
           </h1>
           <p className="text-md">{job.description}</p>
         </div>
+
         <div>
           <h1 className="text-[#25324B] text-2xl font-black mt-10 mb-2">
             Responsibilities
           </h1>
           <ul>
-            {job.responsibilities?.map((resp, idx) => (
+            {responsibilities.map((resp, idx) => (
               <li key={idx} className="flex gap-3 items-start text-md">
                 <IconBox size="sm" className="border-0 bg-transparent">
-                  <FaRegCircleCheck
-                    className="text-[#56CDAD] text-lg"
-                    aria-hidden
-                  />
+                  <GoDotFill className="text-xs" aria-hidden />
                 </IconBox>
                 <span className="mt-0.5">{resp}</span>
               </li>
             ))}
           </ul>
         </div>
+
         <div>
           <h1 className="text-[#25324B] text-2xl font-black mt-10 mb-2">
-            Ideal Candidate we want
+            Ideal Candidate
           </h1>
-          <p>{job.ideal_candidate.age} {job.ideal_candidate.gender} {job.title}</p>
-          <ul>
-            {job.ideal_candidate.traits.map((trait) => (
-              <li key={trait} className="flex gap-3 items-start text-md">
-                <IconBox size="sm" className="border-0 bg-transparent">
-                  <GoDotFill className="text-xs" aria-hidden />
-                </IconBox>
-                <div className="inline-flex">
-                  <p className="mt-1.5 inline">
-                    <span className="font-bold">{trait}</span>
-                  </p>
-                  <p className="inline  mt-1.5"></p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <p className="text-md whitespace-pre-line">{job.idealCandidate}</p>
         </div>
+
         <div>
           <h1 className="text-[#25324B] text-2xl font-black mt-10 mb-2">
             When & Where
@@ -89,22 +103,25 @@ const Job = () => {
             <IconBox size="sm">
               <GrLocation className="text-[#26A4FF] text-base" aria-hidden />
             </IconBox>
-            <p className="text-md">{job.about.location}</p>
+            <p className="text-md">{job.location.join(", ")}</p>
           </div>
         </div>
       </div>
+
       <div className="flex flex-col">
         <div>
           <h1 className="text-[#25324B] text-2xl font-black mb-5">About</h1>
+
           <div className="flex gap-4 mb-4">
             <IconBox size="sm">
               <LuCirclePlus className="text-[#26A4FF] text-base" aria-hidden />
             </IconBox>
             <div>
               <p className="text-[#515B6F] text-[14px] mt-[-5]">Posted On</p>
-              <p className="font-semibold text-[14px]">{job.about?.posted_on}</p>
+              <p className="font-semibold text-[14px]">{job.datePosted}</p>
             </div>
           </div>
+
           <div className="flex gap-4 mb-4">
             <IconBox size="sm">
               <MdOutlineLocalFireDepartment
@@ -114,29 +131,32 @@ const Job = () => {
             </IconBox>
             <div>
               <p className="text-[#515B6F] text-[14px] mt-[-5]">Deadline</p>
-              <p className="font-semibold text-[14px]">{job.about?.deadline}</p>
+              <p className="font-semibold text-[14px]">{job.deadline}</p>
             </div>
           </div>
+
           <div className="flex gap-4 mb-4">
             <IconBox size="sm">
               <GrLocation className="text-[#26A4FF] text-base" aria-hidden />
             </IconBox>
             <div>
               <p className="text-[#515B6F] text-[14px] mt-[-5]">Location</p>
-              <p className="font-semibold text-[14px]">{job.about.location}</p>
+              <p className="font-semibold text-[14px]">
+                {job.location.join(", ")}
+              </p>
             </div>
           </div>
+
           <div className="flex gap-4 mb-4">
             <IconBox size="sm">
               <LuCalendar1 className="text-[#26A4FF] text-base" aria-hidden />
             </IconBox>
             <div>
               <p className="text-[#515B6F] text-[14px] mt-[-5]">Start Date</p>
-              <p className="font-semibold text-[14px]">
-                {job.about?.start_date}
-              </p>
+              <p className="font-semibold text-[14px]">{job.startDate}</p>
             </div>
           </div>
+
           <div className="flex gap-4">
             <IconBox size="sm">
               <LuCalendarCheck
@@ -146,17 +166,19 @@ const Job = () => {
             </IconBox>
             <div>
               <p className="text-[#515B6F] text-[14px] mt-[-5]">End Date</p>
-              <p className="font-semibold text-[14px]">{job.about?.end_date}</p>
+              <p className="font-semibold text-[14px]">{job.endDate}</p>
             </div>
           </div>
         </div>
+
         <hr className="text-gray-400 mt-10" />
+
         <div>
           <h1 className="text-[#25324B] text-2xl font-black mt-10 mb-2">
             Categories
           </h1>
           <div className="flex gap-2">
-            {job.about.categories.map((category, idx) => {
+            {job.categories.map((category, idx) => {
               const isEven = idx % 2 === 0;
               const colorClasses = isEven
                 ? "text-amber-400 bg-amber-100"
@@ -173,13 +195,15 @@ const Job = () => {
             })}
           </div>
         </div>
+
         <hr className="text-gray-400 mt-6" />
+
         <div>
           <h1 className="text-[#25324B] text-2xl font-black mt-10 mb-2">
             Required Skills
           </h1>
           <div className="flex gap-2">
-            {job.about.required_skills?.map((skill, idx) => (
+            {job.requiredSkills?.map((skill, idx) => (
               <div
                 key={idx}
                 className="text-[12px] text-[#4640DE] bg-gray-100 pl-3 pr-3 pt-1 pb-1 rounded"
@@ -192,6 +216,4 @@ const Job = () => {
       </div>
     </div>
   );
-};
-
-export default Job;
+}
